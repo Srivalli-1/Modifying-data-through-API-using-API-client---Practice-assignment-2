@@ -1,34 +1,70 @@
 const express = require('express');
+const { resolve } = require('path');
 const mongoose = require('mongoose');
-const MenuItem = require('./schema');
+
 
 const app = express();
-app.use(express.json());
+const port = 3010;
 
-mongoose.connect ('mongodb+srv://kajasrivallis82:valli@cluster0.evvwa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',{
+mongoose.connect('mongodb+srv://sarayu2926:kKH39Gc5MSJQ1ePs@cluster0.9vtme.mongodb.net/api 2?retryWrites=true&w=majority&appName=Cluster0',{
 
 })
-  .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch((error) => console.error('Error connecting to MongoDB Atlas:', error));
 
-app.post('/menu', async (req, res) => {
-  try {
-    const newMenuItem = new MenuItem(req.body);
-    const savedMenuItem = await newMenuItem.save();
-    res.status(201).json({ message: 'Menu item created successfully', data: savedMenuItem });
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating menu item', error: error.message });
+.then(()=>console.log('Mongodb connected'))
+.catch(err=>console.error('Mongodb connection error:',err));
+
+const menuItemSchema = new mongoose.Schema({
+name:{type:String,required:true},
+description:{type:String},
+
+price:{type:Number,required:true}
+
+
+}); 
+
+const MenuItem= mongoose.model('MenuItem',menuItemSchema);
+
+app.put('/menu/:id',async(req,res)=>{
+  try{
+    const{name,description,price}=req.body;
+    if(!name && !description && price==undefined){
+   return res.status(400).json({message: 'update' })
+    }
+
+   const updatedItem = await MenuItem.findByIdAndUpdate(req.params.id,req.body,{new:true,renValidators:true});
+   if(!updatedItem){
+    return res.status(404).json({message: 'Menu item not found'});
+   
+   }
+   res.json(updatedItem);
+
+
+  } catch(error){
+    res.status(500).json({message: 'error',details:error.message});
   }
 });
 
-app.get('/menu', async (req, res) => {
-  try {
-    const menuItems = await MenuItem.find({});
-    res.json({message:"data retrieved",data:menuItems});
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching menu items', error: error.message });
+app.delete('/menu/:id',async(req,res)=>{
+try{
+  const deletedItem = await MenuItem.findByIdAndDelete(req.params.id);
+  if(!deletedItem){
+    return res.status(404).json({message: 'Menu item not found'});
+
   }
+  res.json({message:'Menu item deleted'});
+}
+  catch(error){
+    res.status(500).json({message:'error',details:error.message})
+  }
+
+
+})
+app.use(express.static('static'));
+
+app.get('/', (req, res) => {
+  res.sendFile(resolve(__dirname, 'pages/index.html'));
 });
 
-const PORT = process.env.PORT || 4010;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`);
+});
